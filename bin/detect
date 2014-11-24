@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 # bin/detect <build-dir>
 
-echo "Null"
+BUILD_DIR=$1
+
+# Exit early if app does not want PostgreSQL
+# if [ ! -f $BUILD_DIR/requirements.txt ] && [ ! -f $BUILD_DIR/setup.py ]; then
+#   exit 1
+# fi
+
+echo PostgreSQL
 exit 0

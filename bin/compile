@@ -1,4 +1,69 @@
 #!/usr/bin/env bash
 # bin/compile <build-dir> <cache-dir>
 
-echo "-----> Nothing to do."
+# fail fast
+set -e
+
+# debug
+# set -x
+
+shopt -s extglob
+
+function error() {
+  echo " !     $*" >&2
+  exit 1
+}
+
+function indent() {
+  c='s/^/       /'
+  case $(uname) in
+    Darwin) sed -l "$c";;
+    *)      sed -u "$c";;
+  esac
+}
+
+# clean up leaking environment
+unset GIT_DIR
+
+# parse and derive params
+BUILD_DIR=$1
+CACHE_DIR="$2/vendor"
+LP_DIR=`cd $(dirname $0); cd ..; pwd`
+BUILDPACK_DIR="$(dirname $(dirname $0))"
+
+# config
+PG_VERSION="9.3.5"
+BUILD_PACK_VERSION="20141123-1835"
+
+S3_BUCKET="s3-us-west-1.amazonaws.com/heroku-buildpack-postgres-client"
+PG_BINARIES="http://${S3_BUCKET}/POSTGRESQL-${PG_VERSION}-binaries-${BUILD_PACK_VERSION}.tar.gz"
+
+echo Binary is at $PG_BINARIES
+
+VENDOR_DIR="$BUILD_DIR/vendor"
+PG_BASE="$VENDOR_DIR/pg"
+
+mkdir -p $CACHE_DIR
+
+# vendor R into the slug
+echo "Vendoring PostgreSQL $PG_VERSION" | indent
+
+# download and unpack binaries
+echo "Downloading and unpacking PostgreSQL binaries" | indent
+mkdir -p $PG_BASE && curl $PG_BINARIES -s -o - | tar xzf - -C $PG_BASE
+
+mkdir -p /app/vendor/pg
+cp -R $PG_BASE/* /app/vendor/pg
+
+# HACK: need to copy over the gcc libs so that packages can find them
+# mkdir -p /app/vendor/pg/lib64/pg/lib
+# cp /app/vendor/gcc/lib64/* /app/vendor/pg/lib64/pg/lib
+
+# TODO(Daigo): Do we need these?
+# export PG_HOME=$PG_BASE/lib64/R
+# export PG_INCLUDE=$PG_HOME/include
+
+echo "PostgreSQL $PG_VERSION successfully installed" | indent
+
+# need to copy binaries back so that any installed packages are included in the slug
+cp -R /app/vendor/pg/* $PG_BASE

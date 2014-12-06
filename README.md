@@ -2,8 +2,6 @@
 
 Build PostgreSQL client on Cedar app
 
-**This does not work yet. Sorry!**
-
 ## Usage
 
 Push the app to Heroku and run our executable:
